@@ -6,6 +6,9 @@ import scala.collection.mutable.{Map, Queue, Set}
 import scala.xml.Elem
 
 
+/**
+ * An image is a snapshot of an object at a given moment.
+ */
 class Image(
     val subject: AnyRef,
     val declaredType: Class[_], 
