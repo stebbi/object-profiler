@@ -27,7 +27,7 @@ class Tests extends TestNGSuite {
   def test(): Unit = {
     println(prettify(report(FILE)))
     val comparison = reconcileFiles(FILE, FIOS, 4)
-    println(prettify(comparison.serialize()))
+    println(prettify(serialize(comparison)))
     assertTrue(true)
   }
 

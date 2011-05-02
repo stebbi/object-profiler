@@ -1,26 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="project/build"/>
-	<classpathentry kind="src" path="src/main/scala"/>
-	<classpathentry kind="src" path="src/test/scala"/>
+	<classpathentry kind="src" output="target/scala_2.8.1/classes" path="src/main/scala"/>
+	<classpathentry kind="src" output="target/scala_2.8.1/test-classes" path="src/test/scala"/>
 	<classpathentry kind="lib" path="lib_managed/scala_2.8.1/compile/bsh-2.0b4.jar"/>
 	<classpathentry kind="lib" path="lib_managed/scala_2.8.1/compile/jcommander-1.12.jar"/>
 	<classpathentry kind="lib" path="lib_managed/scala_2.8.1/compile/junit-3.8.1.jar"/>
 	<classpathentry kind="lib" path="lib_managed/scala_2.8.1/compile/scalatest-1.3.jar"/>
 	<classpathentry kind="lib" path="lib_managed/scala_2.8.1/compile/snakeyaml-1.6.jar"/>
 	<classpathentry kind="lib" path="lib_managed/scala_2.8.1/compile/testng-6.0.1.jar"/>
-	<classpathentry kind="lib" path="project/boot/scala-2.8.1/lib/scala-compiler.jar"/>
 	<classpathentry kind="lib" path="project/boot/scala-2.8.1/lib/scala-library.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1-docs.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1-src.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1-test-src.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1-test.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1.1-docs.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1.1-src.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1.1-test-src.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1.1-test.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1.1.jar"/>
-	<classpathentry kind="lib" path="target/scala_2.8.1/clo_2.8.1-0.1.jar"/>
+	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="output" path="target/scala_2.8.1/test-classes"/>
+	<classpathentry kind="output" path="target/scala_2.8.1/classes"/>
 </classpath>

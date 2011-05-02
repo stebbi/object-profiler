@@ -3,10 +3,7 @@ package profiler
 import scala.collection.mutable.{Map, Queue, Set}
 
 
-abstract class Difference(left: Image, right: Image) {
-  
-  def serialize(): scala.xml.Elem
-}
+abstract class Difference(val left: Image, val right: Image) 
 
 
 object Difference {
@@ -28,45 +25,23 @@ object Difference {
 }
 
 
-class Missing(left: Image) extends Difference(left, null) {
-  
-  def serialize(): scala.xml.Elem = 
-    <missing>{left.subject}</missing>
-}
+class Missing(left: Image) extends Difference(left, null) 
 
 
-class Extra(right: Image) extends Difference(null, right) {
-  
-  def serialize(): scala.xml.Elem = 
-    <extra>{right.subject}</extra>
-}
+class Extra(right: Image) extends Difference(null, right) 
 
 
 class FieldDifference(
     left: Image, 
     right: Image, 
-    different: Map[String, Pair[Image, Image]],
-    missing: Set[String], 	// Present only on the left side 
-    extra: Set[String]) 	// Present only on the right side
+    val different: Map[String, Pair[Image, Image]],
+    val missing: Set[String], 	// Present only on the left side 
+    val extra: Set[String]) 	// Present only on the right side
     extends Difference(left, right) {
-  
-  def serialize: scala.xml.Elem = 
-    <difference>
-      <left declaredType={left.declaredType.getCanonicalName}>
-        {left.valueAsString}
-      </left>
-      <right declaredType={right.declaredType.getCanonicalName}>
-        {right.valueAsString}
-      </right>{ 
-      for ((name, (left, right)) <- different) yield 
-      <field name={name}>
-        <left declaredType={left.declaredType.getCanonicalName}>{left.valueAsString}</left>
-        <right declaredType={right.declaredType.getCanonicalName}>{right.valueAsString}</right>
-      </field>}
-    </difference>
 }
 
 
+  
 object FieldDifference {
   
   def apply(left: Image, right: Image): FieldDifference = {
@@ -122,11 +97,14 @@ object TypeDifference {
 class NoDifference(left: Image, right: Image) extends Exception {}
 
 
-class Reconciliation(left: Profile, right: Profile) extends Iterable[Difference] {
+class Reconciliation(
+    val left: Profile, 
+    val right: Profile) 
+    extends Iterable[Difference] {
   
-  private val hits = Queue[Image]()
+  val hits = Queue[Image]()
   
-  private val misses = Queue[Difference]()
+  val misses = Queue[Difference]()
   
   def +=(left: Image, right: Image): Unit = 
     try { +=(Difference(left, right)) }
@@ -137,20 +115,6 @@ class Reconciliation(left: Profile, right: Profile) extends Iterable[Difference]
   protected def +=(miss: Difference) = misses += miss 
     
   def iterator() = misses.iterator
-
-  object serialize {
-    def apply(): scala.xml.Elem = 
-      <reconciliation left={left.root.valueAsString} right={right.root.valueAsString}>
-        <matched>{ 
-        for (hit <- hits) 
-          yield hit.serialize() }
-        </matched>
-        <mismatched>{ 
-        for (difference <- misses) 
-          yield difference.serialize() }
-        </mismatched>
-      </reconciliation>
-  }
 }
 
 

@@ -1,4 +1,4 @@
-package profiler 
+package profiler  
 
 import java.lang.reflect.Field
 import org.w3c.dom.Document
@@ -10,14 +10,21 @@ import scala.xml.Elem
  * An image is a snapshot of an object at a given moment.
  */
 class Image(
+    /** The subject of the snapshot. */
     val subject: AnyRef,
+    /** The declared type of the subject. */
     val declaredType: Class[_], 
+    /** The object tree depth at which the subject was first encountered. */
     val depth: Int) {
   
   val fields = Map[String, Image]()
   
   def bind(name: String, value: Image): Unit = fields += ((name, value))
-    
+   
+  /** 
+   * Accessor for field values. 
+   * @param name The name of the field to access.
+   */
   def apply(name: String): Image = fields(name)
   
   def contains(name: String): Boolean = fields.contains(name)
@@ -42,26 +49,9 @@ class Image(
     }
   }
   
-  def valueAsString(): String =
-    subject match {
-      case null => "null"
-      case _: String => "\"" + subject.toString() + "\""
-      case _ => subject.toString()
-    }
-
-  object serialize {
-    
-    def apply(): scala.xml.Elem = 
-      return <image id={describe(subject)}>{ 
-        for ((name, value) <- fields) 
-          yield this(name, value) }</image>
-        
-    protected def apply(name: String, image: Image): scala.xml.Elem = 
-      if (isInScope())
-        return <field name={name} refid={describe(subject)}/>
-      else
-        return <field name={name} class={declaredType.getCanonicalName}>{valueAsString}</field>
-  }
+  def visit(visitor: (String, Image) => AnyRef): Iterable[AnyRef] =
+    for ((name, value) <- fields)
+      yield visitor(name, value)
 }
 
 
@@ -119,12 +109,6 @@ class Profile extends Iterable[Image] {
   def list() = order.result
   
   def iterator() = order.result.iterator
-  
-  object serialize {
-    def apply(depth: Int = 1): scala.xml.Elem = 
-      return <profile>{ for (image <- Profile.this) 
-        yield image.serialize() }</profile>
-  }
 }
 
 
@@ -143,7 +127,7 @@ class Profiler(
     visit()._1
   
   def report(): Elem = 
-    profile().serialize(limit)
+    serialize(profile(), limit)
   
   protected def visit(): (Profile, Schedule) = {
     if (scheduled.isEmpty)
