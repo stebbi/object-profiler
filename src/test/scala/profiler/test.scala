@@ -52,7 +52,7 @@ class Tests extends TestNGSuite {
   @Test
   def testTree(): Unit = {
     val comparison = reconcileFiles(FILE, FILE2, 4)
-    println(prettify(tree(comparison.left, 4)))
+    println(prettify(tree(comparison.left, 2)))
   }
 
   def main(args: Array[String]): Unit = {
