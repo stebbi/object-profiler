@@ -1,6 +1,7 @@
 package profiler 
 
 import org.scalatest.testng.TestNGSuite
+import org.testng.Assert.assertEquals
 import org.testng.Assert.assertTrue
 import org.testng.annotations.Test
 
@@ -22,16 +23,38 @@ class Tests extends TestNGSuite {
   
   def reconcileFiles(left: AnyRef, right: AnyRef, depth: Int): Reconciliation = 
     Reconciliation(profile(left, depth), profile(right, depth))
-  
+ 
   @Test
-  def test(): Unit = {
-    println(prettify(report(FILE)))
+  def testProfiler(): Unit = {
+    prettify(report(FILE))
+  }
+
+  @Test
+  def testReconcileSame(): Unit = {
+    val comparison = reconcileFiles(FILE, FILE, 4)
+    val report = serialize(comparison)
+    val mismatched = report \\ "reconciliation" \\ "mismatched"
+    assertTrue(mismatched.head.child.isEmpty)
+    val matched = report \\ "reconciliation" \\ "matched" \\ "image"
+    assertEquals(matched.length, 6)
+  }
+
+  @Test
+  def testReconcileMismatchedTypes(): Unit = {
     val comparison = reconcileFiles(FILE, FIOS, 4)
-    println(prettify(serialize(comparison)))
-    assertTrue(true)
+    val report = serialize(comparison)
+    val mismatched = report \\ "reconciliation" \\ "mismatched" \\ "difference"
+    assertEquals(mismatched.length, 5)
+    val matched = report \\ "reconciliation" \\ "matched" 
+    assertTrue(matched.head.child.isEmpty)
+  }
+
+  @Test
+  def testTree(): Unit = {
+    val comparison = reconcileFiles(FILE, FILE2, 4)
+    println(prettify(tree(comparison.left, 4)))
   }
 
   def main(args: Array[String]): Unit = {
-    test()
   }
 }

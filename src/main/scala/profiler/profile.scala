@@ -116,8 +116,8 @@ class DuplicateImage(duplicate: Image, original: Image) extends Exception
 
 
 class Profiler(
-    root: AnyRef, 
-    limit: Int = 1) {
+    val root: AnyRef, 
+    val limit: Int = 1) {
 
   private val recorded = new Profile()
   

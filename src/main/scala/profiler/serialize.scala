@@ -4,14 +4,15 @@ package profiler
 object serialize {
   
   def apply(profile: Profile, depth: Int = 1): scala.xml.Elem = 
-    return <profile>{ for (image <- profile) 
+    <profile>{ 
+    for (image <- profile) 
       yield serialize(image) 
-  }</profile>
+    }</profile>
   
   def apply(image: Image): scala.xml.Elem = 
-    return <image id={describe(image.subject)}>{ 
-      for (field <- image.visit(applyx))
-        yield field 
+    <image id={describe(image.subject)}>{ 
+    for (field <- image.visit(applyx))
+      yield field 
     }</image>
       
   protected def applyx(name: String, value: Image): scala.xml.Elem = 
@@ -70,4 +71,26 @@ object serialize {
 
   def asString(clss: Class[_]): String = 
     clss.getCanonicalName()
+}
+
+
+object tree {
+  
+  def apply(profile: Profile, depth: Int = 1): scala.xml.Elem = 
+    object_(profile.root, depth)
+  
+  def field(name: String, image: Image, depth: Int): scala.xml.Elem = 
+    <field name={name} type={serialize.asString(image.declaredType)}>{
+    if (0 < depth)
+      if (image.isInScope) 
+        object_(image, depth - 1)
+      else 
+        image.subject.toString
+    }</field>
+ 
+  def object_(image: Image, depth: Int): scala.xml.Elem = 
+    <object type={serialize.asString(image.subject.getClass())}>{
+    for ((name, image) <- image.fields)
+      yield field(name, image, depth)
+    }</object>
 }
