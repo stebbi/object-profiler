@@ -1,6 +1,7 @@
 package profiler  
 
 import java.lang.reflect.Field
+import java.lang.reflect.Method
 import org.w3c.dom.Document
 import scala.collection.mutable.{Map, Queue, Set}
 import scala.xml.Elem
@@ -19,15 +20,28 @@ class Image(
   
   val fields = Map[String, Image]()
   
-  def bind(name: String, value: Image): Unit = fields += ((name, value))
+  val properties = Map[String, Image]()
+  
+  def bind(name: String, value: Image, isProperty: Boolean = false): Unit = 
+    if (isProperty) 
+      properties += ((name, value))
+    else 
+      fields += ((name, value))
    
   /** 
-   * Accessor for field values. 
-   * @param name The name of the field to access.
+   * Accessor for field and property values. 
+   * @param name The name of the field or property to access.
    */
-  def apply(name: String): Image = fields(name)
+  def apply(name: String): Image = {
+    if (fields.contains(name))
+      return fields(name)
+    if (properties.contains(name))
+      return properties(name)
+    return null
+  }
   
-  def contains(name: String): Boolean = fields.contains(name)
+  def contains(name: String): Boolean = 
+    fields.contains(name) || properties.contains(name)
   
   def equals(other: Image): Boolean = subject.equals(other.subject)
   
@@ -49,9 +63,12 @@ class Image(
     }
   }
   
-  def visit(visitor: (String, Image) => AnyRef): Iterable[AnyRef] =
+  def visit(visitor: (String, Image) => AnyRef): Iterable[AnyRef] = {
     for ((name, value) <- fields)
       yield visitor(name, value)
+    for ((name, value) <- properties)
+      yield visitor(name, value)
+  }
 }
 
 
@@ -151,6 +168,8 @@ class Profiler(
       later += visit(current, field)
     for (field <- c.getDeclaredFields()) 
       later += visit(current, field)
+    for (method <- c.getMethods()) 
+      later += visit(current, method)
     later
   }
   
@@ -159,14 +178,35 @@ class Profiler(
     val name = field.getName()
     val value = field.get(current.subject)
     val declaredType = field.getType()
+    visit(current, name, value, declaredType)
+  }
+
+  protected def visit(current: Image, method: Method): Image = {
+    if (0 != method.getParameterTypes().length)
+      return null
+    val methodName = method.getName()
+    if (!methodName.startsWith("get"))
+      return null
+    val first = String.valueOf(methodName.charAt(3)).toLowerCase() 
+    val name = first + methodName.substring(4)
+    method.setAccessible(true)
+    val value = method.invoke(current.subject)
+    val declaredType = method.getReturnType()
+    visit(current, name, value, declaredType, true)
+  }
+
+  protected def visit(
+    current: Image, 
+    name: String, value: Object, declaredType: Class[_], 
+    isProperty: Boolean = false)
+  : Image = {
     val hash = profiler.hash(value)
     val isRecorded = recorded.contains(hash)
     val isScheduled = scheduled.contains(hash)
-    val later = 
-      if (isRecorded) recorded(hash)
+    val later = if (isRecorded) recorded(hash)
       else if (isScheduled) scheduled(hash)
       else new Image(value, declaredType, current.depth + 1)
-    current.bind(name, later)
+    current.bind(name, later, isProperty)
     if (!isRecorded && !isScheduled)
       later
     else null
