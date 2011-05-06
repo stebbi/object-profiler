@@ -184,11 +184,7 @@ class Profiler(
   protected def visit(current: Image, method: Method): Image = {
     if (0 != method.getParameterTypes().length)
       return null
-    val methodName = method.getName()
-    if (!methodName.startsWith("get"))
-      return null
-    val first = String.valueOf(methodName.charAt(3)).toLowerCase() 
-    val name = first + methodName.substring(4)
+    val name = method.getName()
     method.setAccessible(true)
     val value = method.invoke(current.subject)
     val declaredType = method.getReturnType()
