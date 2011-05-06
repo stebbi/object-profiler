@@ -79,6 +79,15 @@ object tree {
   def apply(profile: Profile, depth: Int = 1): scala.xml.Elem = 
     object_(profile.root, depth)
   
+ def object_(image: Image, depth: Int): scala.xml.Elem = 
+    <object type={serialize.asString(image.subject.getClass())}>{
+    for ((name, image) <- image.fields)
+      yield field(name, image, depth)
+    }{
+    for ((name, image) <- image.properties)
+      yield property(name, image, depth)
+    }</object>
+
   def field(name: String, image: Image, depth: Int): scala.xml.Elem = 
     <field name={name} type={serialize.asString(image.declaredType)}>{
     if (0 < depth)
@@ -88,9 +97,13 @@ object tree {
         image.subject.toString
     }</field>
  
-  def object_(image: Image, depth: Int): scala.xml.Elem = 
-    <object type={serialize.asString(image.subject.getClass())}>{
-    for ((name, image) <- image.fields)
-      yield field(name, image, depth)
-    }</object>
-}
+  def property(name: String, image: Image, depth: Int): scala.xml.Elem = 
+    <property name={name} type={serialize.asString(image.declaredType)}>{
+    if (0 < depth)
+      if (image.isInScope) 
+        object_(image, depth - 1)
+      else 
+        image.subject.toString
+    }</property>
+ 
+  }
