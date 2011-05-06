@@ -4,8 +4,8 @@ Introduction
 
 This is a toy project to learn a bit about Scala and the Scala toolchain. 
 
-The code implements an "object 
-profiler". It's somewhat analogous to a memory profiler, only different:
+The code implements an "object profiler". It's somewhat analogous to a memory 
+profiler, only different:
 
  - Instead of collecting information about heap space allocation, it collects 
 information about JVM object state and relationships.
