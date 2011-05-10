@@ -10,51 +10,33 @@ class Tests extends TestNGSuite {
 
   val FILE  = new java.io.File("/tmp/test.txt")
   val FILE2 = new java.io.File("/tmp/test2.txt")
+  val FILE3  = new java.io.File("/tmp/tmp/test.txt")
   val FIOS  = new java.io.FileInputStream("/tmp/test.txt") 
  
-  def profile(subject: AnyRef, depth: Int): Profile = 
-    new Profiler(subject, depth).profile()
-    
-  def report(subject: AnyRef): scala.xml.Elem = 
-    new Profiler(subject, 4).report()
-    
-  def prettify(xml: scala.xml.Elem): String = 
-    new scala.xml.PrettyPrinter(80, 2).format(xml)
-  
-  def reconcileFiles(left: AnyRef, right: AnyRef, depth: Int): Reconciliation = 
-    Reconciliation(profile(left, depth), profile(right, depth))
- 
   @Test
-  def testProfiler(): Unit = {
-    prettify(report(FILE))
-  }
+  def testProfiler(): Unit = serialize(profile(FILE, 3), 3)
 
   @Test
   def testReconcileSame(): Unit = {
-    val comparison = reconcileFiles(FILE, FILE, 4)
-    val report = serialize(comparison)
-    val mismatched = report \\ "reconciliation" \\ "mismatched"
-    // assertTrue(mismatched.head.child.isEmpty)
-    val matched = report \\ "reconciliation" \\ "matched" \\ "image"
-    assertEquals(matched.length, 11)
+    val depth = 4
+    val comparison = reconcile(FILE, FILE, depth)
+    val report = serialize(comparison, depth)
+    println(prettify(report))
   }
 
   @Test
   def testReconcileMismatchedTypes(): Unit = {
-    val comparison = reconcileFiles(FILE, FIOS, 4)
-    val report = serialize(comparison)
-    val mismatched = report \\ "reconciliation" \\ "mismatched" \\ "difference"
-    assertEquals(mismatched.length, 10)
-    val matched = report \\ "reconciliation" \\ "matched" 
-    assertTrue(matched.head.child.isEmpty)
+    val depth = 4
+    val comparison = reconcile(FILE, FIOS, depth)
+    val r = serialize(comparison, depth)
+    println(prettify(r))
   }
 
   @Test
   def testTree(): Unit = {
-    val comparison = reconcileFiles(FILE, FILE2, 4)
-    println(prettify(tree(comparison.left, 2)))
-  }
-
-  def main(args: Array[String]): Unit = {
+    val d = 4
+    val comparison = reconcile(FILE, FILE3, d)
+    val s = new java.io.FileOutputStream("/Users/stebbi/Scratch/out.xml")
+    serialize(comparison, d, s)
   }
 }

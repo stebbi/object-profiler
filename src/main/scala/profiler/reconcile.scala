@@ -3,128 +3,104 @@ package profiler
 import scala.collection.mutable.{Map, Queue, Set}
 
 
-abstract class Difference(val left: Image, val right: Image) 
+abstract class Difference(
+    val name: String, 
+    val left: Image, 
+    val right: Image) 
 
 
 object Difference {
   
-  def apply(left: Image, right: Image): Difference = {
+  def apply(name: String, left: Image, right: Image, depth: Int): Difference = {
     if (left == right)
-      throw new NoDifference(left, right)
+      throw new NoDifference(name, left, right)
     if (null == right)
-      return new Missing(left)
+      return new Missing(name, left)
     if (null == left)
-      return new Extra(right)
-    // TODO Is this sensible?
-    if (left.equals(right))
-      throw new NoDifference(left, right)
+      return new Extra(name, right)
+    if (left.equals(right)) // TODO Fix
+      throw new NoDifference(name, left, right)
     if (!left.declaredType.equals(right.declaredType))
-      return TypeDifference(left, right)
-    return FieldDifference(left, right)
+      return new TypeDifference(name, left, right)
+    return new Reconciliation(name, left, right, depth)
   }
 }
 
 
-class Missing(left: Image) extends Difference(left, null) 
+class Missing(name: String, left: Image) extends Difference(name, left, null) 
 
 
-class Extra(right: Image) extends Difference(null, right) 
+class Extra(name: String, right: Image) extends Difference(name, null, right) 
 
 
 class FieldDifference(
+    name: String, 
     left: Image, 
-    right: Image, 
-    val different: Map[String, Pair[Image, Image]],
-    val missing: Set[String], 	// Present only on the left side 
-    val extra: Set[String]) 	// Present only on the right side
-    extends Difference(left, right) {
-}
-
+    right: Image) 
+    extends Difference(name, left, right) {}
 
   
-object FieldDifference {
-  
-  def apply(left: Image, right: Image): FieldDifference = {
-    val (different, missing, extra) = compare(left, right)
-    return new FieldDifference(left, right, different, missing, extra)
-  }
-    
-  def compare(left: Image, right: Image) = {
-    // Naive is fine for now
-    val same = Set[String]()
-    val different = Map[String, Pair[Image, Image]]()
-    val missing = Set[String]()
-    val extra = Set[String]()
-    left.fields.keys.foreach[Unit](name => { 
-      if (!right.fields.contains(name))
-        missing += name
-      else {
-        val lval = left(name)
-        val rval = right(name)
-        if (lval.equals(rval))
-          same += name
-        else
-          different += ((name, (lval, rval)))
-      }
-    })
-    right.fields.keys.foreach[Unit](name => {
-      if (!left.contains(name))
-        extra += name
-    })
-    (different, missing, extra)
-  }
-}
-
-
 class TypeDifference(
+    name: String, 
     left: Image, 
-    right: Image,
-    different: Map[String, Pair[Image, Image]],
-    missing: Set[String], 
-    extra: Set[String]) 
-    extends FieldDifference(left, right, different, missing, extra)
+    right: Image)
+    extends FieldDifference(name, left, right) {}
 
 
-object TypeDifference {
-  
-  def apply(left: Image, right: Image): TypeDifference = {
-    val (different, missing, extra) = FieldDifference.compare(left, right)
-    return new TypeDifference(left, right, different, missing, extra)
-  }
-}
-
-
-class NoDifference(left: Image, right: Image) extends Exception {}
+class NoDifference(name: String, left: Image, right: Image) extends Exception {}
 
 
 class Reconciliation(
-    val left: Profile, 
-    val right: Profile) 
-    extends Iterable[Difference] {
-  
-  val hits = Queue[Image]()
-  
-  val misses = Queue[Difference]()
-  
-  def +=(left: Image, right: Image): Unit = 
-    try { +=(Difference(left, right)) }
-    catch { 
-      case x: NoDifference => hits += left
+    name: String, 
+    left: Image, 
+    right: Image, 
+    depth: Int) 
+    extends Difference(name, left, right) 
+    with Iterable[Difference] {
+
+  private val differences = Map[String, Difference]()
+
+  compare(left, right, depth)
+
+  def this(left: Profile, right: Profile, depth: Int) = 
+    this("root", left.root, right.root, depth)
+
+  def compare(left: Image, right: Image, depth: Int): Unit  = {
+    if (1 > depth)
+      return
+    if (left.declaredType != right.declaredType) {
+      differences += ((name, new TypeDifference(name, left, right)))
+      return
     }
-  
-  protected def +=(miss: Difference) = misses += miss 
-    
-  def iterator() = misses.iterator
-}
-
-
-object Reconciliation {
-
-  def apply(left: Profile, right: Profile): Reconciliation = {
-    val comparison = new Reconciliation(left, right)
-    for (pair <- left.list().zip(right.list()))
-      comparison += (pair._1, pair._2)
-    return comparison
+    val visited = Set[String]()
+    left.visit((name: String, lval: Image, isProperty: Boolean) => {
+      visited += name
+      if (!right.contains(name)) 
+        differences += ((name, new Missing(name, lval)))
+      else {
+        val rval = right(name)._1
+        if (!lval.equals(rval))
+          differences += { 
+            if (!lval.isInScope() || !rval.isInScope())
+              ((name, new FieldDifference(name, lval, rval)))
+            else
+              ((name, new Reconciliation(name, lval, rval, depth - 1))) 
+          }
+      }
+      Unit
+    })
+    right.visit((name: String, rval: Image, isProperty: Boolean) => {
+      if (!visited.contains(name))
+        differences += ((name, new Extra(name, rval)))
+      Unit
+    }) 
   }
+
+  def visit(visitor: Difference => AnyRef) = 
+    for (difference <- differences.values)
+      yield visitor(difference)
+
+  def iterator() = differences.values.iterator
 }
+
 

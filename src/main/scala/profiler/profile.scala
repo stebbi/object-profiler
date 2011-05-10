@@ -18,32 +18,21 @@ class Image(
     /** The object tree depth at which the subject was first encountered. */
     val depth: Int) {
   
-  val fields = Map[String, Image]()
-  
-  val properties = Map[String, Image]()
+  protected val fields = Map[String, (Image, Boolean)]()
   
   def bind(name: String, value: Image, isProperty: Boolean = false): Unit = 
-    if (isProperty) 
-      properties += ((name, value))
-    else 
-      fields += ((name, value))
+    fields += ((name, (value, isProperty)))
    
   /** 
    * Accessor for field and property values. 
    * @param name The name of the field or property to access.
    */
-  def apply(name: String): Image = {
-    if (fields.contains(name))
-      return fields(name)
-    if (properties.contains(name))
-      return properties(name)
-    return null
-  }
+  def apply(name: String): (Image, Boolean) = fields(name)
   
-  def contains(name: String): Boolean = 
-    fields.contains(name) || properties.contains(name)
+  def contains(name: String): Boolean = fields.contains(name) 
   
-  def equals(other: Image): Boolean = subject.equals(other.subject)
+  def equals(other: Image): Boolean = 
+    if (null != subject) subject.equals(other.subject) else false
   
   def hash(): Int = profiler.hash(subject)
     
@@ -62,13 +51,13 @@ class Image(
       case _ => true
     }
   }
-  
-  def visit(visitor: (String, Image) => AnyRef): Iterable[AnyRef] = {
-    for ((name, value) <- fields)
-      yield visitor(name, value)
-    for ((name, value) <- properties)
-      yield visitor(name, value)
-  }
+
+  def actualType(): Class[_] = 
+    if (null != subject) subject.getClass else classOf[Object] 
+
+  def visit(visitor: (String, Image, Boolean) => AnyRef): Iterable[AnyRef] = 
+    for ((name, (value, isProperty)) <- fields)
+      yield visitor(name, value, isProperty)
 }
 
 
@@ -99,8 +88,7 @@ class Schedule(root: Image) {
     next
   }
   
-  def apply(key: Int): Image = 
-    remaining(key)
+  def apply(key: Int): Image = remaining(key)
 } 
 
 
@@ -114,7 +102,7 @@ class Profile extends Iterable[Image] {
   
   def +=(image: Image): Unit = {
     if (images.contains(image.hash)) 
-      return // throw new DuplicateImage(image, images(image.hash))
+      return 
     images += ((image.hash, image))
     order += image
   }
@@ -140,11 +128,7 @@ class Profiler(
   
   private val scheduled = new Schedule(new Image(root, root.getClass(), 0))
 
-  def profile(): Profile = 
-    visit()._1
-  
-  def report(): Elem = 
-    serialize(profile(), limit)
+  def profile(): Profile = visit()._1
   
   protected def visit(): (Profile, Schedule) = {
     if (scheduled.isEmpty)
@@ -185,6 +169,8 @@ class Profiler(
     if (0 != method.getParameterTypes().length)
       return null
     val name = method.getName()
+    if (!name.startsWith("get"))
+      return null
     method.setAccessible(true)
     val value = method.invoke(current.subject)
     val declaredType = method.getReturnType()
