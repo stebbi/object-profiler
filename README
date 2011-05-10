@@ -58,3 +58,21 @@ util.File object representing /tmp/test.txt:
     <field type="boolean" name="$assertionsDisabled">true</field>
   </object>
 
+Usage
+-----
+
+To create the example profile of /tmp/test.txt, 
+
+  import profiler
+  profiler.report(new java.io.File("/tmp/test.txt"), 2)
+
+To inspect differences between file objects representing /tmp/test.txt and /tmp/test2.txt,
+
+  import profiler
+  profiler.report(
+    new java.io.File("/tmp/test.txt", 2), 
+    new java.io.File("/tmp/test2.txt", 2), 
+    2)
+
+The reports will be printed to stdout. Alternatively, print to a file by adding a filename parameter.
+
