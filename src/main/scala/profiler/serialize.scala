@@ -51,7 +51,7 @@ class SerializingProfile(profile: Profile) {
     }</field>
  
   def property(name: String, image: Image, depth: Int): scala.xml.Elem = 
-    <property name={name} type={image.declaredType.asString}>{
+    <property name={name} declaredType={image.declaredType.asString}>{
     if (0 < depth)
       if (image.isInScope) 
         object_(image, depth - 1)

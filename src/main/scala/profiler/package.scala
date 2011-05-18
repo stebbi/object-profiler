@@ -8,6 +8,7 @@ package object profiler {
 
   import java.io.{File, FileOutputStream, OutputStream}
   import scala.collection.mutable.Map
+  import scala.xml.{Elem, Node, Text}
   import scala.xml.parsing.ConstructingParser
 
   /**
@@ -57,27 +58,54 @@ package object profiler {
     new Profile() += deserializeObject(
       ConstructingParser.fromFile(f, false).document().docElem, 0)
 
-  def deserializeObject(e: scala.xml.Node, depth: Int): Image = {
+  def deserializeObject(e: Node, depth: Int): Image = {
     val attribute = e.attributes.asAttrMap
-    val actualType = Class.forName(attribute("actualType"))
+    // val actualType = Class.forName(attribute("actualType"))
     val declaredType = Class.forName(attribute("declaredType"))
     val fields = Map[String, (Image, Boolean)]()
     for (c <- e.child) 
-      fields += deserializeField(c, depth)
+      if ("field".equals(c.label))
+        fields += deserializeField(c, depth)
     new Image(null, declaredType, depth, fields)
   }
 
-  def deserializeField(e: scala.xml.Node, depth: Int)
-  : (String, (Image, Boolean)) = {
+  def deserializeField(e: Node, depth: Int): (String, (Image, Boolean)) = {
     val attribute = e.attributes.asAttrMap
     val name = attribute("name")
-    var declaredType = attribute("declaredType")
-    try { declaredType = Class.forName(declaredType) }
-    catch { case x: ClassNotFoundException => ; } // Retain attribute value
-    for (c <- e.child) 
-      println(c.getClass)
-    ((name, (null, false)))
+    val declaredType = attribute("declaredType") match {
+      case "boolean" => classOf[java.lang.Boolean]
+      case "char" => classOf[java.lang.Character]
+      case "double" => classOf[java.lang.Double]
+      case "float" => classOf[java.lang.Float]
+      case "int" => classOf[java.lang.Integer]
+      case "long" => classOf[java.lang.Long]
+      case n => Class.forName(n)
+    }
+    val subject = e.nonEmptyChildren.head match {
+      case c: Text => instantiate(declaredType, c.toString)
+      case c: Elem => deserializeObject(c, depth - 1)
+      case c => throw new Exception("Unexpected: " + c.toString)
+    }
+    val image = new Image(subject, declaredType, depth)
+    ((name, (image, false)))
   } 
+
+  def instantiate(clss: Class[_], value: String): Object = 
+    if (classOf[java.lang.String].equals(clss))
+      value
+    else if (classOf[java.lang.Boolean].equals(clss))
+      java.lang.Boolean.valueOf(value)
+    else if (classOf[java.lang.Character].equals(clss))
+      java.lang.Character.valueOf(value.charAt(0))
+    else if (classOf[java.lang.Double].equals(clss))
+      java.lang.Double.valueOf(value)
+    else if (classOf[java.lang.Integer].equals(clss))
+      java.lang.Integer.valueOf(value)
+    else if (classOf[java.lang.Long].equals(clss))
+      java.lang.Long.valueOf(value)
+    else
+      throw new UnsupportedOperationException(String.format(
+        "Unable to instantiate %s with %s", clss.getCanonicalName, value))
 
   // TODO Fix
   def describe(subject: Any): String = 

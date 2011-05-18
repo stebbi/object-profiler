@@ -18,8 +18,8 @@ object fixture {
 class TestProfiles extends TestNGSuite {
 
   /** Profiles a file object and serializes XML to stdout. */
-  @Test
-  def testProfiler(): Unit = profiler.report(fixture.FILE, 3)
+  // @Test
+  // def testProfiler(): Unit = profiler.report(fixture.FILE, 3)
 }
 
 
