@@ -70,8 +70,8 @@ To inspect differences between file objects representing /tmp/test.txt and /tmp/
 
   import profiler
   profiler.report(
-    new java.io.File("/tmp/test.txt",), 
-    new java.io.File("/tmp/test2.txt",), 
+    new java.io.File("/tmp/test.txt"), 
+    new java.io.File("/tmp/test2.txt"), 
     2)
 
 The reports will be printed to stdout. Alternatively, print to a file by adding a filename parameter.
