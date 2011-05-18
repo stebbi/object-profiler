@@ -1,6 +1,6 @@
 package profiler
 
-import java.io.{BufferedWriter, OutputStream, OutputStreamWriter}
+import java.io.{BufferedWriter, File, FileOutputStream, OutputStream, OutputStreamWriter, Writer}
 
 
 class ImageAsString(image: Image) {
@@ -29,7 +29,9 @@ class SerializingProfile(profile: Profile) {
     object_(profile.root, depth)
   
   def object_(image: Image, depth: Int): scala.xml.Elem = 
-    <object type={image.subject.getClass().asString}>{
+    <object 
+      actualType={image.subject.getClass().asString}
+      declaredType={image.declaredType.getClass().asString}>{
       image.visit(
         (name: String, image: Image, isProperty: Boolean) => {
           if (isProperty)
@@ -40,7 +42,7 @@ class SerializingProfile(profile: Profile) {
     }</object>
 
   def field(name: String, image: Image, depth: Int): scala.xml.Elem = 
-    <field name={name} type={image.declaredType.asString}>{
+    <field name={name} declaredType={image.declaredType.asString}>{
     if (0 < depth)
       if (image.isInScope) 
         object_(image, depth - 1)
@@ -111,24 +113,40 @@ class SerializingDifference(difference: Difference) {
 object serialize {
 
   implicit def profile(p: Profile) = new SerializingProfile(p)
+
   implicit def difference(d: Difference) = new SerializingDifference(d)
+
+  implicit def stream2writer(s: OutputStream): Writer = 
+    new BufferedWriter(new OutputStreamWriter(s))
 
   def apply(p: Profile, depth: Int): scala.xml.Elem = p.serialize(depth)
    
   def apply(p: Profile, depth: Int, out: OutputStream): Unit = {
+    val w: Writer = out
+    w.write(prettify(apply(p, depth))) 
+  }
+
+  def apply(p: Profile, depth: Int, path: String): Unit = 
+    apply(p, depth, new File(path))
+
+  def apply(p: Profile, depth: Int, out: File): Unit = 
     withWriter(out, writer => {
       writer.write(prettify(apply(p, depth))) }) 
-  }
 
   def apply(r: Reconciliation, depth: Int): scala.xml.Elem = 
     <reconciliation>{r.serialize(depth)}</reconciliation>
 
-  def apply(r: Reconciliation, depth: Int, out: OutputStream): Unit =
+  def apply(r: Reconciliation, depth: Int, out: OutputStream): Unit = {
+    val w: Writer = out
+    w.write(prettify(apply(r, depth)))
+  }
+  
+  def apply(r: Reconciliation, depth: Int, out: File): Unit =
     withWriter(out, writer => {
       writer.write(prettify(apply(r, depth))) })
 
-  def withWriter(out: OutputStream, op: BufferedWriter => Unit) = {
-    val w = new BufferedWriter(new OutputStreamWriter(out))
+  def withWriter(out: File, op: Writer => Unit) = {
+    val w: Writer = new FileOutputStream(out)
     try { op(w) } finally { w.close() }
   }
 }

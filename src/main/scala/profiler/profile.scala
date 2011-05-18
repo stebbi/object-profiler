@@ -8,7 +8,18 @@ import scala.xml.Elem
 
 
 /**
- * An image is a snapshot of an object at a given moment.
+ * An image is a snapshot of an object at a given moment. 
+ *
+ * An image instance consists of a reference to the subject, and a map of 
+ * field names to field values as of the creation of the image. 
+ *
+ * The subject may undergo change while the image is resident in memory. 
+ * In this case the field map will still contain the snapshot of the state 
+ * of the subject when the image was taken. A second image can then be 
+ * created and compared with the first, to measure what changes the subject 
+ * has undergone. 
+ * 
+ * TODO: @serializable?
  */
 class Image(
     /** The subject of the snapshot. */
@@ -18,8 +29,18 @@ class Image(
     /** The object tree depth at which the subject was first encountered. */
     val depth: Int) {
   
-  protected val fields = Map[String, (Image, Boolean)]()
-  
+  private var fields = Map[String, (Image, Boolean)]()
+ 
+  def this(
+    subject: AnyRef, 
+    declaredType: Class[_], 
+    depth: Int, 
+    fields: Map[String, (Image, Boolean)])
+  = {
+    this(subject, declaredType, depth)
+    this.fields = fields
+  }
+
   def bind(name: String, value: Image, isProperty: Boolean = false): Unit = 
     fields += ((name, (value, isProperty)))
    
@@ -100,11 +121,12 @@ class Profile extends Iterable[Image] {
   
   def root(): Image = order.head
   
-  def +=(image: Image): Unit = {
+  def +=(image: Image): Profile = {
     if (images.contains(image.hash)) 
-      return 
+      return this
     images += ((image.hash, image))
     order += image
+    this
   }
     
   def contains(key: Int): Boolean = images.contains(key)
